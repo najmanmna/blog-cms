@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import './editor.css';
 
-export default function EditPostClient({ slug }: { slug: string }) {
+export default function EditPostClient() {
+  const { slug } = useParams();
   const router = useRouter();
   const [title, setTitle] = useState('');
-  const [safeSlug, setSafeSlug] = useState(slug);
+  const [slugInput, setSlugInput] = useState('');
   const [loading, setLoading] = useState(true);
 
   const editor = useEditor({
@@ -24,20 +25,15 @@ export default function EditPostClient({ slug }: { slug: string }) {
   });
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || !slug) return;
 
     const fetchPost = async () => {
-      try {
-        const res = await fetch(`/api/posts/${slug}`);
-        const data = await res.json();
-        setTitle(data.title);
-        setSafeSlug(data.slug);
-        editor.commands.setContent(data.content || '');
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching post:', err);
-        setLoading(false);
-      }
+      const res = await fetch(`/api/posts/${slug}`);
+      const data = await res.json();
+      setTitle(data.title);
+      setSlugInput(data.slug);
+      editor.commands.setContent(data.content || '');
+      setLoading(false);
     };
 
     fetchPost();
@@ -54,7 +50,7 @@ export default function EditPostClient({ slug }: { slug: string }) {
       },
       body: JSON.stringify({
         title,
-        slug: safeSlug,
+        slug: slugInput,
         content: editor?.getHTML(),
       }),
     });
@@ -88,31 +84,25 @@ export default function EditPostClient({ slug }: { slug: string }) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Update your title"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
-                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
               <input
                 type="text"
-                value={safeSlug}
+                value={slugInput}
                 onChange={(e) =>
-                  setSafeSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))
+                  setSlugInput(e.target.value.toLowerCase().replace(/\s+/g, '-'))
                 }
-                placeholder="custom-slug"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm text-sm"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                ✨ SEO-friendly, lowercase, hyphen-separated (e.g. <code>my-post</code>)
-              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-              <div className="border border-gray-300 rounded-xl p-3 min-h-[250px] bg-white">
+              <div className="border border-gray-300 rounded-xl p-3 bg-white min-h-[250px]">
                 <EditorContent editor={editor} />
               </div>
             </div>
