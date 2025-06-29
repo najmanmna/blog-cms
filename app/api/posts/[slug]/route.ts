@@ -2,16 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Post from '@/models/Post';
 import { verifyAdminToken } from '@/lib/verifyAdmin';
-import { sanitizeHtml } from '@/lib/sanitizeHtml'; // ✅ import sanitizer
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
-// ✅ Public - Fetch a single post (for edit view)
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+// 🔓 Public - Get a single post by slug
+export async function GET(req: NextRequest) {
   await dbConnect();
 
-  const post = await Post.findOne({ slug: params.slug });
+  const url = new URL(req.url);
+  const slug = url.pathname.split('/').pop(); // ✅ Extract slug from URL safely
+
+  if (!slug) {
+    return NextResponse.json({ message: 'Missing slug' }, { status: 400 });
+  }
+
+  const post = await Post.findOne({ slug });
 
   if (!post) {
     return NextResponse.json({ message: 'Post not found' }, { status: 404 });
@@ -20,15 +24,15 @@ export async function GET(
   return NextResponse.json(post);
 }
 
-// ✅ Protected - Update post
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+// 🔐 Protected - Update a post
+export async function PUT(req: NextRequest) {
   const unauthorized = verifyAdminToken(req);
   if (unauthorized) return unauthorized;
 
   await dbConnect();
+
+  const url = new URL(req.url);
+  const originalSlug = url.pathname.split('/').pop(); // 🔁 original slug in URL
 
   try {
     const { title, content, slug: newSlug } = await req.json();
@@ -38,10 +42,11 @@ export async function PUT(
     }
 
     const sanitizedContent = sanitizeHtml(content);
+    const safeSlug = newSlug.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
     const updated = await Post.findOneAndUpdate(
-      { slug: params.slug },
-      { title, content: sanitizedContent, slug: newSlug },
+      { slug: originalSlug },
+      { title, content: sanitizedContent, slug: safeSlug },
       { new: true }
     );
 
@@ -55,17 +60,21 @@ export async function PUT(
   }
 }
 
-// ✅ Protected - Delete post
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+// 🔐 Protected - Delete a post
+export async function DELETE(req: NextRequest) {
   const unauthorized = verifyAdminToken(req);
   if (unauthorized) return unauthorized;
 
   await dbConnect();
 
-  const deleted = await Post.findOneAndDelete({ slug: params.slug });
+  const url = new URL(req.url);
+  const slug = url.pathname.split('/').pop();
+
+  if (!slug) {
+    return NextResponse.json({ message: 'Missing slug' }, { status: 400 });
+  }
+
+  const deleted = await Post.findOneAndDelete({ slug });
 
   if (!deleted) {
     return NextResponse.json({ message: 'Post not found' }, { status: 404 });

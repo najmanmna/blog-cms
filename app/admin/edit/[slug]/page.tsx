@@ -1,48 +1,56 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import "./editor.css";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import './editor.css';
 
 export default function EditPostPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
   const [loading, setLoading] = useState(true);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: "Write your blog content here...",
+        placeholder: 'Write your blog content here...',
       }),
     ],
-    content: "",
+    content: '',
   });
 
-  // Fetch post data
   useEffect(() => {
-    fetch(`/api/posts/${params.slug}`)
-      .then((res) => res.json())
-      .then((data) => {
+    if (!editor) return;
+
+    const fetchPost = async () => {
+      try {
+        const res = await fetch(`/api/posts/${params.slug}`);
+        const data = await res.json();
         setTitle(data.title);
         setSlug(data.slug);
-        editor?.commands.setContent(data.content || "");
+        editor.commands.setContent(data.content || '');
         setLoading(false);
-      });
-  }, [editor, params.slug]);
+      } catch (err) {
+        console.error('Error fetching post:', err);
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [editor]); // ❗ don't directly use `params.slug` as dependency
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const res = await fetch(`/api/posts/${params.slug}`, {
-      method: "PUT",
+      method: 'PUT',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer my-secret-token",
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer my-secret-token',
       },
       body: JSON.stringify({
         title,
@@ -52,34 +60,31 @@ export default function EditPostPage({ params }: { params: { slug: string } }) {
     });
 
     if (res.ok) {
-      alert("✅ Post updated!");
-      router.push("/admin/posts");
+      alert('✅ Post updated!');
+      router.push('/admin/posts');
     } else {
-      alert("❌ Failed to update post.");
+      alert('❌ Failed to update post.');
     }
   }
 
-  if (loading || !editor)
+  if (loading || !editor) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600 text-sm">
         Loading post...
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-800">
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="bg-white/70 backdrop-blur-md border border-gray-200 shadow-xl rounded-2xl p-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-8">
-            ✏️ Edit Post
-          </h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-8">✏️ Edit Post</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
               <input
                 type="text"
                 value={title}
@@ -92,29 +97,24 @@ export default function EditPostPage({ params }: { params: { slug: string } }) {
 
             {/* Slug */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Slug (URL)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
               <input
                 type="text"
                 value={slug}
                 onChange={(e) =>
-                  setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))
+                  setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))
                 }
                 placeholder="custom-slug"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                ✨ SEO-friendly, lowercase, hyphen-separated (e.g.{" "}
-                <code>my-post</code>)
+                ✨ SEO-friendly, lowercase, hyphen-separated (e.g. <code>my-post</code>)
               </p>
             </div>
 
             {/* Content */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Content
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
               <div className="border border-gray-300 rounded-xl p-3 min-h-[250px] bg-white">
                 <EditorContent editor={editor} />
               </div>
@@ -126,7 +126,7 @@ export default function EditPostPage({ params }: { params: { slug: string } }) {
               disabled={loading}
               className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl shadow-md hover:bg-blue-700 transition disabled:opacity-60"
             >
-              {loading ? "Saving..." : "💾 Save Changes"}
+              {loading ? 'Saving...' : '💾 Save Changes'}
             </button>
           </form>
         </div>
