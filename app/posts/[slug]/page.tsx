@@ -5,19 +5,13 @@ import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-// ✅ Correct type for Next.js page props
-interface PageProps {
-  params: {
-    slug: string;
-  };
-}
-
-// ✅ Public blog post page
-export default async function BlogPostPage({ params }: PageProps) {
-  const { slug } = params;
-
+export default async function BlogPostPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
   await dbConnect();
-  const post = await Post.findOne({ slug });
+  const post = await Post.findOne({ slug: params.slug });
 
   if (!post) return notFound();
 
@@ -25,7 +19,9 @@ export default async function BlogPostPage({ params }: PageProps) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-800">
       <div className="max-w-3xl mx-auto px-6 py-14">
         <article className="bg-white/70 backdrop-blur-md border border-gray-200 shadow-xl rounded-2xl p-8">
-          <h1 className="text-4xl font-extrabold mb-6 text-gray-900">{post.title}</h1>
+          <h1 className="text-4xl font-extrabold mb-6 text-gray-900">
+            {post.title}
+          </h1>
           <div
             className="prose prose-slate prose-sm sm:prose-base max-w-none"
             dangerouslySetInnerHTML={{ __html: post.content }}
@@ -36,24 +32,18 @@ export default async function BlogPostPage({ params }: PageProps) {
   );
 }
 
-// ✅ Dynamic SEO metadata for each blog post
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params;
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  await dbConnect();
+  const post = await Post.findOne({ slug: params.slug });
 
-  try {
-    await dbConnect();
-    const post = await Post.findOne({ slug });
+  if (!post) return { title: 'Post Not Found' };
 
-    if (!post) return { title: 'Post Not Found' };
-
-    return {
-      title: post.title,
-      description: post.content?.replace(/<[^>]+>/g, '').slice(0, 150) || '',
-    };
-  } catch {
-    return {
-      title: 'Error',
-      description: 'Could not load blog post.',
-    };
-  }
+  return {
+    title: post.title,
+    description: post.content?.replace(/<[^>]+>/g, '').slice(0, 150),
+  };
 }
