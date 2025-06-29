@@ -2,6 +2,12 @@
 
 import EditPostClient from './EditPostClient';
 
-export default function Page({ params }: { params: { slug: string } }) {
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
+
+export default function Page({ params }: PageProps) {
   return <EditPostClient slug={params.slug} />;
 }
