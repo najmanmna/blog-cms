@@ -1,18 +1,22 @@
 import dbConnect from '@/lib/dbConnect';
 import Post from '@/models/Post';
 import { notFound } from 'next/navigation';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-type Props = {
-  params: { slug: string };
-};
+// ✅ Correct type for Next.js page props
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
 
 // ✅ Public blog post page
-export default async function BlogPostPage({ params }: Props) {
+export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = params;
+
   await dbConnect();
-  const slug = params.slug?.toString();
   const post = await Post.findOne({ slug });
 
   if (!post) return notFound();
@@ -32,18 +36,19 @@ export default async function BlogPostPage({ params }: Props) {
   );
 }
 
-// ✅ SEO metadata for this post
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+// ✅ Dynamic SEO metadata for each blog post
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = params;
+
   try {
     await dbConnect();
-    const slug = params.slug?.toString();
     const post = await Post.findOne({ slug });
 
     if (!post) return { title: 'Post Not Found' };
 
     return {
       title: post.title,
-      description: post.content?.replace(/<[^>]+>/g, '').slice(0, 150),
+      description: post.content?.replace(/<[^>]+>/g, '').slice(0, 150) || '',
     };
   } catch {
     return {
