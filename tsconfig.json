@@ -22,6 +22,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".", // ✅ Make sure this is present 
     "paths": {
       "@/*": [
         "./*"
